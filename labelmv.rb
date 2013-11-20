@@ -57,7 +57,6 @@ class ProcessLabelFiles
             oparse.parse!
             
             if ARGV.empty? then
-				#~ puts "You must specify at least one input file."
 				raise "You must specify at least one input file."
 			end
             
@@ -80,7 +79,7 @@ class ProcessLabelFiles
             puts "[WARN] This is a dry run, no changes will be made to the disk"
             puts ""
         end
-        puts "[INFO]  - Processing files:"
+        puts "[INFO]  - Found input files:"
         puts *@file_list
         @file_list.each do |label_file|
             puts ""
@@ -110,34 +109,40 @@ class ProcessLabelFiles
             # Sanitize paths
             begin
                 if (row[0].nil? or row[1].nil? or row[2].nil?) then
-                    puts "[ERROR] - line #{line_n}: Empty field(s)"
+                    puts "[ERROR] - line #{line_n}: Empty field(s), skipping"
                     next
                 end
                 src = Dir.new(row[0])
                 dst = Dir.new(row[1])
                 bkp = Dir.new(row[2])
             rescue Exception => e
-                puts "[ERROR] - line #{line_n}: " + e.message
+                puts "[ERROR] - line #{line_n}: " + e.message + ", skipping"
                 next
             end            
             unless src.path.match("#{@src_pre.path}")
-                puts "[ERROR] - line #{line_n}: Source path forbidden - #{src.path}"
+                puts "[ERROR] - line #{line_n}: Source path forbidden, skipping - #{src.path}"
                 next
             end
             unless dst.path.match("#{@dst_pre.path}")
-                puts "[ERROR] - line #{line_n}: Destination path forbidden - #{dst.path}"
+                puts "[ERROR] - line #{line_n}: Destination path forbidden, skipping - #{dst.path}"
                 next
             end
             unless bkp.path.match("#{@bkp_pre.path}")
-                puts "[ERROR] - line #{line_n}: Backup path forbidden - #{bkp.path}"
+                puts "[ERROR] - line #{line_n}: Backup path forbidden, skipping - #{bkp.path}"
                 next
             end                        
             if Dir.glob(src.path+"/*").empty?
                 if @debug then
-                    puts "[INFO]  - line #{line_n}: Source directory is empty - #{src.path}"
+                    puts "[INFO]  - line #{line_n}: Source directory is empty, skipping - #{src.path}"
                 end
                 next
             end
+            Dir.glob(src.path+"/*").each do |f|
+				if File.directory?(f) then
+					puts "[ERROR] - line #{line_n}: Source path contains subdirectories, skipping - #{src.path}"
+					next
+				end
+			end
             
             # Copy the files and remove from src, unless this is a dry-run            
             files = Dir.glob(src.path+"/*")
