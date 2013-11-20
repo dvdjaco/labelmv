@@ -101,20 +101,24 @@ class ProcessLabelFiles
             end
 
             # Check number of fields
-            if row.length != 3 then
+            if (row.length < 2 or row.length > 3) then
                 puts "[ERROR] - line #{line_n}: Wrong number of fields, skipping. Check you paths for commas!"
                 next
             end
             
-            # Sanitize paths
+            # Sanitize paths (bkp is optional)
             begin
-                if (row[0].nil? or row[1].nil? or row[2].nil?) then
+                if (row[0].nil? or row[1].nil?) then
                     puts "[ERROR] - line #{line_n}: Empty field(s), skipping"
                     next
                 end
-                src = Dir.new(row[0])
-                dst = Dir.new(row[1])
-                bkp = Dir.new(row[2])
+                src = Dir.new(row[0].lstrip)
+                dst = Dir.new(row[1].lstrip)
+                if row[2].nil? then
+                    bkp = nil
+                else
+                    bkp = Dir.new(row[2].lstrip)
+                end
             rescue Exception => e
                 puts "[ERROR] - line #{line_n}: " + e.message + ", skipping"
                 next
@@ -127,9 +131,11 @@ class ProcessLabelFiles
                 puts "[ERROR] - line #{line_n}: Destination path forbidden, skipping - #{dst.path}"
                 next
             end
-            unless bkp.path.match("#{@bkp_pre.path}")
-                puts "[ERROR] - line #{line_n}: Backup path forbidden, skipping - #{bkp.path}"
-                next
+            unless bkp.nil?
+                unless (bkp.path.match("#{@bkp_pre.path}"))
+                    puts "[ERROR] - line #{line_n}: Backup path forbidden, skipping - #{bkp.path}"
+                    next
+                end
             end                        
             if Dir.glob(src.path+"/*").empty?
                 if @debug then
@@ -143,7 +149,7 @@ class ProcessLabelFiles
 					next
 				end
 			end
-            
+
             # Copy the files and remove from src, unless this is a dry-run            
             files = Dir.glob(src.path+"/*")
             v = true
@@ -154,7 +160,7 @@ class ProcessLabelFiles
             end
             puts "[INFO]  - line #{line_n}: Executing file operations on #{src.path}."
             cp(files, dst.path, {:verbose => v, :noop => n})
-            cp(files, bkp.path, {:verbose => v, :noop => n})
+            cp(files, bkp.path, {:verbose => v, :noop => n}) unless bkp.nil?
             rm(files, {:verbose => v, :noop => n})
         end
     end
