@@ -1,0 +1,4 @@
+# Parses a CSV file containing 3 paths per row (src, dst, bkp).
+# Copy each file in src into dst and bkp, then remove it from src.
+# These 3 paths can be restricted to subtrees with command-line parameters.
+
